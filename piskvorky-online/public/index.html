@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Piškvorky 15×15</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f3f1ec;--panel:#fff;--text:#262421;--muted:#7a756c;--line:#e2ded6;--accent:#4a7c3a;--sel:#dcebd3}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#262522;--panel:#312e2b;--text:#eceae6;--muted:#a09a90;--line:#443f3a;--accent:#7fb069;--sel:#43553a}}
+:root[data-theme="dark"]{--bg:#262522;--panel:#312e2b;--text:#eceae6;--muted:#a09a90;--line:#443f3a;--accent:#7fb069;--sel:#43553a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.app{display:flex;flex-wrap:wrap;gap:16px;padding:16px;max-width:1000px;margin:0 auto;align-items:flex-start}
+.boardwrap{flex:1 1 380px;max-width:600px;min-width:0}
+#status{font-weight:600;font-size:17px;margin:0 0 8px;min-height:26px}
+#board{width:100%;height:auto;display:block;border-radius:6px;box-shadow:0 2px 10px rgba(0,0,0,.25);touch-action:manipulation}
+aside{flex:1 1 300px;min-width:280px;background:var(--panel);border-radius:8px;border:1px solid var(--line);padding:12px;display:flex;flex-direction:column;gap:10px}
+.tabs{display:flex;gap:6px}
+button{font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 10px;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--accent)}
+button:disabled{opacity:.4;cursor:default}
+button.on,button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.tabs button{flex:1}
+#names{display:flex;gap:6px}
+#names input{flex:1;min-width:0;font:inherit;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--text)}
+.list{height:250px;overflow-y:auto;border:1px solid var(--line);border-radius:6px;background:var(--bg)}
+.row{display:grid;grid-template-columns:34px 1fr 1fr;align-items:center;border-bottom:1px solid var(--line)}
+.row:nth-child(even){background:rgba(128,128,128,.07)}
+.n{color:var(--muted);padding:5px 6px;text-align:right}
+.mv{padding:5px 8px;display:flex;align-items:center;gap:5px;min-height:30px;white-space:nowrap}
+.mv[data-i]{cursor:pointer}
+.mv.sel{background:var(--sel);font-weight:600}
+.bd{font-style:normal;color:#fff;font-size:11px;font-weight:700;min-width:20px;height:20px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px}
+.var{padding:6px 8px;border-left:4px solid #8e5bd6;background:rgba(142,91,214,.13);display:flex;flex-wrap:wrap;gap:2px 6px;align-items:center;font-size:14px}
+.vl{color:#8e5bd6;font-size:12px;font-weight:600}.vn{color:var(--muted)}
+.vm{cursor:pointer;padding:3px 6px;border-radius:4px;display:inline-flex;align-items:center;gap:4px}
+.vm.sel{background:#8e5bd6;color:#fff}.vm.sel b{color:#fff!important}
+.empt{color:var(--muted);padding:12px;text-align:center}
+.bar{display:flex;flex-wrap:wrap;gap:6px}
+.bar button{flex:1 1 auto;min-height:42px}
+.badges button{min-height:40px}
+@media (max-width:700px){.app{padding:10px;gap:10px}aside{padding:10px}.list{height:210px}#note{font-size:16px}input{font-size:16px}}
+#anno{display:flex;flex-direction:column;gap:8px}
+.badges{display:flex;flex-wrap:wrap;gap:6px}
+.badges button{display:flex;align-items:center;gap:6px;padding:4px 8px}
+.badges button.on{outline:2px solid var(--accent)}
+textarea{width:100%;min-height:70px;resize:vertical;font:inherit;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--text)}
+.muted{color:var(--muted);font-size:13px}
+.game{display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid var(--line)}
+.game .info{flex:1;min-width:0}.game .info b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+[hidden]{display:none!important}
+#banner{background:var(--sel);border:1px solid var(--accent);border-radius:6px;padding:8px;display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-size:14px}
+#toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#262421;color:#fff;padding:8px 14px;border-radius:8px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:9;max-width:90vw;text-align:center}
+#toast.on{opacity:1}
+#myName{width:100%;font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--text);margin:6px 0 10px}
+.tbl{border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--bg);display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.tbl .th{display:flex;justify-content:space-between;align-items:center;font-weight:600}
+.tseats{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:stretch}
+.felt{background:var(--accent);color:#fff;border-radius:999px;padding:6px 12px;font-size:12px;display:flex;align-items:center;justify-content:center;text-align:center;min-width:96px}
+.seat{min-height:46px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 6px;font-weight:600;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.seat.taken{background:var(--sel);border:1px solid var(--line)}
+.seat.me{outline:2px solid var(--accent)}
+.seat small{font-weight:400;color:var(--muted)}
+.seat.free{border:1px dashed var(--muted);background:transparent}
+.pls{display:flex;flex-direction:column;gap:4px}
+.pl{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--line);border-radius:6px}
+.pl.act{border-color:var(--accent);background:var(--sel)}
+.pl .pn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ps{width:18px;text-align:center;font-weight:700}
+.ck{font:600 17px ui-monospace,SFMono-Regular,Menlo,monospace}.ck.low{color:#d9534f}
+.rf{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px}
+.rf label{display:flex;flex-direction:column;font-size:13px;color:var(--muted);gap:2px}
+.rf select{font:inherit;padding:6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--text)}
+.bar button small{display:block;opacity:.75;font-size:11px}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="boardwrap"><div id="status"></div><svg id="board"></svg></div>
+  <aside>
+    <div id="banner" hidden></div>
+    <div class="tabs"><button id="tTables" class="on">Stoly</button><button id="tGame">Hra</button><button id="tSaved">Uložené (0)</button></div>
+    <div id="pTables">
+      <div class="muted" id="conn"></div>
+      <input id="myName" placeholder="Tvoje jméno" maxlength="20">
+      <div id="tlist"></div>
+      <button id="goLocal" style="width:100%;margin-top:4px">Lokální hra (2 hráči na jednom zařízení)</button>
+    </div>
+    <div id="pGame" hidden>
+      <div id="names"><input id="n1" placeholder="✕ Hráč 1" maxlength="20"><input id="n2" placeholder="○ Hráč 2" maxlength="20"></div>
+      <div id="ctrl" class="bar" style="margin:10px 0"></div>
+      <div id="anno"></div>
+      <div id="list" class="list" style="margin-top:10px"></div>
+    </div>
+    <div id="pSaved" hidden></div>
+  </aside>
+</div>
+<div id="toast"></div>
+<script>
+const N=15,C=36,M=28,S=M*2+C*N,L='ABCDEFGHIJKLMNO';
+const B={book:['📖','Knižní tah','#a0764a'],good:['!','Dobrý tah','#6aa84f'],great:['!!','Výborný tah','#26a69a'],miss:['✖','Přehlédnutí','#e69138'],blunder:['??','Blunder','#d9534f']};
+const TIMES=[0,1,3,5,10,15],INCS=[0,2,5,10];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+const uid=()=>(window.crypto&&crypto.randomUUID)?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2,12);
+let CID=lsGet('piskvorky:cid');if(!CID||!/^[\w-]{8,64}$/.test(CID)){CID=uid();lsSet('piskvorky:cid',CID)}
+
+let mode='play',moves=[],game=null,step=0,tab='tables',games=[],vv=null,vn=0,adding=false,vc=0,pn=['',''];
+let tables=[],watching=null,lastSeat=null,online=false,skew=0,pending=null;
+const SK='piskvorky:state';
+function saveState(){lsSet(SK,JSON.stringify({mode:mode==='online'?'play':mode,moves,pn,gid:game&&game.id,step,vid:vv&&vv.id,vn,tab}))}
+
+/* ───────── spojení se serverem ───────── */
+let ws=null,retry=0;
+function connect(){
+  if(ws&&ws.readyState<=1)return;
+  ws=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+'/ws');
+  const me=ws;
+  ws.onopen=()=>{retry=0;me.send(JSON.stringify({t:'hello',cid:CID}))};
+  ws.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch(x){return}onMsg(m)};
+  ws.onclose=()=>{if(ws===me){ws=null;online=false;renderAll();setTimeout(connect,Math.min(800*2**retry++,8000))}};
+  ws.onerror=()=>{try{me.close()}catch(x){}};
+}
+function send(o,quiet){
+  if(ws&&ws.readyState===1&&online){ws.send(JSON.stringify(o));return true}
+  if(!quiet)toast('Nejsi připojen k serveru.');return false;
+}
+setInterval(()=>{if(ws&&ws.readyState===1)ws.send('ping')},25000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)connect()});
+let tt=0;function toast(s){const e=$('toast');e.textContent=s;e.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('on'),2600)}
+
+function upsertGame(g,keepAnn){
+  const ex=games.find(x=>x.id===g.id);
+  if(!ex){games.push(g);return g}
+  const n=ex.notes,v=ex.vars;Object.assign(ex,g);if(keepAnn){ex.notes=n;ex.vars=v}return ex;
+}
+function reresolve(){
+  if(mode!=='review'||!game)return;
+  if(vv){const id=vv.id;vv=(game.vars||[]).find(x=>x.id===id)||null;if(vv)vn=Math.min(vn,vv.moves.length)}
+  step=Math.min(step,game.moves.length);
+}
+function onMsg(m){
+  if(m.now)skew=m.now-Date.now();
+  if(m.t==='init'){
+    online=true;tables=m.tables;
+    const ids=new Set(m.games.map(g=>g.id));
+    m.games.forEach(g=>upsertGame(g,dirty.has(g.id)));
+    games=games.filter(g=>ids.has(g.id));
+    if(game&&!games.includes(game)){game=null;if(mode==='review')mode='play'}
+    restore();reresolve();syncMode();flush();renderAll();
+  }else if(m.t==='table'){
+    const i=tables.findIndex(t=>t.id===m.table.id);if(i>=0)tables[i]=m.table;else tables.push(m.table);
+    syncMode();renderAll();
+  }else if(m.t==='game'){
+    upsertGame(m.game,false);
+    if(mode==='review'&&game&&game.id===m.game.id){
+      reresolve();
+      if(document.activeElement&&document.activeElement.id==='note'){drawBoard();renderList();updTabs();return}
+    }
+    renderAll();
+  }else if(m.t==='gameDel'){
+    games=games.filter(g=>g.id!==m.id);dirty.delete(m.id);
+    if(mode==='review'&&game&&game.id===m.id){game=null;vv=null;mode=curTable()?'online':'play';toast('Tuhle hru někdo smazal.')}
+    renderAll();
+  }else if(m.t==='err')toast(m.msg);
+}
+
+/* ───────── online: pomocné ───────── */
+const myTable=()=>tables.find(t=>t.seats.some(s=>s&&s.me))||null;
+const curTable=()=>myTable()||tables.find(t=>t.id===watching)||null;
+const seatIdx=t=>t.seats.findIndex(s=>s&&s.me);
+const onMoves=()=>{const t=curTable();return t&&t.game?t.game.moves:[]};
+const sy=c=>c==='X'?'✕':'○';
+function syncMode(){
+  const mt=myTable(),id=mt?mt.id:null;
+  if(id!==lastSeat){
+    if(id!==null){mode='online';tab='game';vv=null;adding=false;watching=null}
+    else if(mode==='online'&&!watching){mode='play';tab='tables'}
+    lastSeat=id;
+  }
+  if(mode==='online'&&!curTable())mode='play';
+}
+function symName(t,c){const g=t.game;if(!g||!g.colors)return '?';const s=t.seats[g.colors[c]];return s?esc(s.name):'?'}
+const rulesText=R=>`${R.time?R.time+' min'+(R.inc?' +'+R.inc+' s':''):'bez času'} · ${{none:'bez swapu',swap1:'Swap 1',swap2:'Swap 2'}[R.swap]}`;
+function onStatus(t){
+  const g=t.game,me=seatIdx(t),nmS=i=>t.seats[i]?t.seats[i].name:'?',P=`Stůl ${t.id+1} · `;
+  if(t.phase==='empty'||t.phase==='waiting')return P+(me>=0?'čekáš na soupeře':'čeká se na hráče');
+  if(t.phase==='setup')return P+(me===t.host?'nastav pravidla a začni hru':nmS(t.host)+' nastavuje pravidla…');
+  if(t.phase==='over'){
+    const r=g.result;
+    if(r.win==='draw')return '🤝 Remíza – plán je plný';
+    if(r.win==='open')return '🔌 Hra ukončena (odpojení)';
+    const w=r.win,l=w==='X'?'O':'X',wn=symName(t,w),ln=symName(t,l);
+    return {five:`🏆 Vyhrává ${sy(w)} ${wn}!`,time:`⏱ ${ln} vypršel čas – vyhrává ${sy(w)} ${wn}`,resign:`🏳 ${ln} se vzdal(a) – vyhrává ${sy(w)} ${wn}`,abandon:`🔌 ${ln} se odpojil(a) – vyhrává ${sy(w)} ${wn}`}[r.how];
+  }
+  const a=g.actor,n=g.moves.length,you=a===me?' (ty)':'';
+  return {opening:`Úvod: ${nmS(a)}${you} pokládá ✕ ○ ✕ (${n}/3)`,choice:`${nmS(a)}${you} vybírá stranu`,extra:`${nmS(a)}${you} přidává ○ ✕ (${n-3}/2)`,choice2:`${nmS(a)}${you} vybírá stranu`,play:`Na tahu: ${sym(n)} ${nmS(a)}${you}`}[g.stage];
+}
+const fmtClock=ms=>{ms=Math.max(0,ms);const s=Math.ceil(ms/1000);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+function tickClocks(){
+  const t=curTable();if(mode!=='online'||!t||!t.game||!t.rules.time)return;
+  document.querySelectorAll('[data-ck]').forEach(e=>{
+    const i=+e.dataset.ck;let ms=t.game.clock[i];
+    if(t.phase==='play'&&t.game.actor===i)ms-=Date.now()+skew-t.game.since;
+    e.textContent=fmtClock(ms);e.classList.toggle('low',ms<10000);
+  });
+}
+setInterval(tickClocks,250);
+function arm(b,fn){
+  b.onclick=()=>{
+    if(!b.dataset.arm){const o=b.textContent;b.dataset.arm=1;b.textContent='Opravdu?';b.classList.add('primary');
+      setTimeout(()=>{if(b.isConnected&&b.dataset.arm){delete b.dataset.arm;b.textContent=o;b.classList.remove('primary')}},3000);return}
+    fn();
+  };
+}
+
+const nm=(i,g)=>{const a=g?[g.p1,g.p2]:[$('n1').value.trim()||'Hráč 1',$('n2').value.trim()||'Hráč 2'];return a[i%2]};
+const sym=i=>i%2?'○':'✕';
+const lab=m=>L[m.x]+(m.y+1);
+
+function findWin(ms){
+  if(!ms.length)return null;
+  const p=(ms.length-1)%2,set=new Set();
+  ms.forEach((m,i)=>{if(i%2===p)set.add(m.x+','+m.y)});
+  const l=ms[ms.length-1];
+  for(const [dx,dy] of [[1,0],[0,1],[1,1],[1,-1]]){
+    const line=[[l.x,l.y]];
+    for(const s of [1,-1]){let x=l.x+dx*s,y=l.y+dy*s;while(set.has(x+','+y)){line.push([x,y]);x+=dx*s;y+=dy*s}}
+    if(line.length>=5)return line;
+  }
+  return null;
+}
+const line=()=>vv?game.moves.slice(0,vv.at).concat(vv.moves.slice(0,vn)):game.moves.slice(0,step);
+const cur=()=>mode==='play'?moves:mode==='online'?onMoves():line();
+
+function drawBoard(){
+  const ms=cur(),win=findWin(ms),rv=mode==='review',br=rv&&vv?vv.at:Infinity;
+  const nt=rv?(vv?(vv.notes||{})[vn-1]:game.notes[step-1]):null;
+  const cc=v=>M+v*C+C/2;
+  let s=`<rect width="${S}" height="${S}" fill="#fff"/>`;
+  ms.forEach((m,i)=>{if(i>=br)s+=`<rect x="${M+m.x*C}" y="${M+m.y*C}" width="${C}" height="${C}" fill="#e9dcfb"/>`});
+  if(ms.length){const l=ms[ms.length-1];s+=`<rect x="${M+l.x*C}" y="${M+l.y*C}" width="${C}" height="${C}" fill="${ms.length-1>=br?'#c8aef3':'#fff3b0'}"/>`}
+  for(let i=0;i<=N;i++){
+    const p=M+i*C;
+    s+=`<line x1="${M}" y1="${p}" x2="${S-M}" y2="${p}" stroke="#9db8dc" stroke-width="1"/><line x1="${p}" y1="${M}" x2="${p}" y2="${S-M}" stroke="#9db8dc" stroke-width="1"/>`;
+  }
+  for(let i=0;i<N;i++){
+    s+=`<text x="${cc(i)}" y="18" font-size="12" text-anchor="middle" fill="#7a8aa0">${L[i]}</text><text x="12" y="${cc(i)+4}" font-size="12" text-anchor="middle" fill="#7a8aa0">${i+1}</text>`;
+  }
+  if(win)s+=`<polyline points="${win.map(c=>cc(c[0])+','+cc(c[1])).join(' ')}" stroke="#4caf50" stroke-width="8" stroke-linecap="round" opacity=".45" fill="none"/>`;
+  ms.forEach((m,i)=>{
+    const cx=cc(m.x),cy=cc(m.y);
+    if(i%2===0)s+=`<path d="M${cx-9} ${cy-9}L${cx+9} ${cy+9}M${cx+9} ${cy-9}L${cx-9} ${cy+9}" stroke="#1e5bd8" stroke-width="4" stroke-linecap="round" fill="none"/>`;
+    else s+=`<circle cx="${cx}" cy="${cy}" r="10" fill="none" stroke="#d32f2f" stroke-width="4"/>`;
+    if(i>=br)s+=`<text x="${M+m.x*C+3}" y="${M+m.y*C+10}" font-size="9" font-weight="700" fill="#7e57c2">${i-br+1}</text>`;
+    if(i===ms.length-1&&nt&&nt.b)s+=`<circle cx="${cx+13}" cy="${cy-13}" r="10" fill="${B[nt.b][2]}" stroke="#fff" stroke-width="1.5"/><text x="${cx+13}" y="${cy-9}" font-size="${B[nt.b][0].length>1?10:12}" font-weight="700" text-anchor="middle" fill="#fff">${B[nt.b][0]==='📖'?'B':B[nt.b][0]}</text>`;
+  });
+  $('board').setAttribute('viewBox',`0 0 ${S} ${S}`);
+  $('board').innerHTML=s;
+}
+
+function listHtml(){
+  const rv=mode==='review',ms=rv?game.moves:(mode==='online'?onMoves():moves),notes=rv?game.notes:{},sel=rv?(vv?-1:step-1):ms.length-1;
+  if(!ms.length)return `<div class="empt">${mode==='online'?'Zatím žádné tahy.':'Zatím žádné tahy. Klikni na hrací plán.'}</div>`;
+  const col=i=>`<b style="color:${i%2?'#d32f2f':'#1e5bd8'}">${sym(i)}</b>`;
+  const bdg=nt=>nt&&nt.b?`<i class="bd" style="background:${B[nt.b][2]}">${B[nt.b][0]}</i>`:'';
+  const mv=i=>{const nt=notes[i];return `<span class="mv ${i===sel?'sel':''}" ${rv?`data-i="${i}"`:''}>${col(i)} ${lab(ms[i])}${bdg(nt)}${nt&&nt.t?'💬':''}</span>`};
+  const varBlock=v=>{
+    let h='<div class="var"><span class="vl">↳ varianta</span>';
+    v.moves.forEach((m,j)=>{
+      const gi=v.at+j,nt=(v.notes||{})[j],pre=gi%2===0?(Math.floor(gi/2)+1)+'.':(j===0?(Math.floor(gi/2)+1)+'…':'');
+      h+=(pre?`<span class="vn">${pre}</span>`:'')+`<span class="vm ${vv&&vv.id===v.id&&vn===j+1?'sel':''}" data-v="${v.id}" data-j="${j+1}">${col(gi)} ${lab(m)}${bdg(nt)}${nt&&nt.t?'💬':''}</span>`;
+    });
+    return h+'</div>';
+  };
+  let h='',row=null;
+  const flush=()=>{if(row){h+=`<div class="row"><span class="n">${row.n}</span>${row.c[0]||'<span class="mv"></span>'}${row.c[1]||'<span class="mv"></span>'}</div>`;row=null}};
+  if(rv)(game.vars||[]).filter(v=>v.at===0).forEach(v=>h+=varBlock(v));
+  for(let i=0;i<ms.length;i++){
+    const c=i%2;
+    if(!row)row={n:(Math.floor(i/2)+1)+'.',c:[c?'<span class="mv muted">…</span>':'','']};
+    row.c[c]=mv(i);
+    const vs=rv?(game.vars||[]).filter(v=>v.at===i+1):[];
+    if(vs.length||c===1){flush();vs.forEach(v=>h+=varBlock(v))}
+  }
+  flush();return h;
+}
+function renderList(){
+  const l=$('list');l.innerHTML=listHtml();
+  const s=l.querySelector('.sel');
+  if(s){const a=s.getBoundingClientRect(),b=l.getBoundingClientRect();if(a.top<b.top)l.scrollTop-=b.top-a.top;else if(a.bottom>b.bottom)l.scrollTop+=a.bottom-b.bottom}
+  else if(mode==='online')l.scrollTop=l.scrollHeight;
+}
+
+function render(){
+  const ms=cur(),win=findWin(ms),over=mode==='play'&&(win||ms.length===N*N),g=mode==='review'?game:null;
+  let st;
+  if(mode==='play')st=win?`🏆 Vyhrává ${sym(ms.length-1)} ${nm(ms.length-1)}!`:ms.length===N*N?'Remíza – plán je plný':`Na tahu: ${sym(ms.length)} ${nm(ms.length)}`;
+  else if(mode==='review'){st=vv?`Varianta po ${vv.at}. tahu · tah ${vn}/${vv.moves.length}`:`Rozbor: ${g.name} · tah ${step}/${g.moves.length}`;if(adding)st+=' · ✏️';}
+  else{const t=curTable();st=(online?'':'⚠ Spojení ztraceno, připojuji… ')+(t?onStatus(t)+(seatIdx(t)<0?' · sleduješ':''):'')}
+  $('status').textContent=st;
+  drawBoard();renderList();
+  $('names').hidden=mode==='online';
+  const ed=mode==='play';
+  [['n1',g?g.p1:pn[0]],['n2',g?g.p2:pn[1]]].forEach(([id,v])=>{const e=$(id);e.disabled=!ed;if(e.value!==v)e.value=v});
+  const c=$('ctrl'),a=$('anno');
+  if(mode==='play'){
+    c.innerHTML=`<button id="undo" ${moves.length?'':'disabled'}>↶ Zpět o tah</button><button id="save" class="${over?'primary':''}" ${moves.length?'':'disabled'}>💾 Uložit hru</button><button id="new">Nová hra</button>`;
+    a.innerHTML=over?'<div class="muted">Hra skončila – ulož ji a otevři ji v rozboru, kde můžeš ke tahům přidávat poznámky.</div>':'';
+    $('undo').onclick=()=>{moves.pop();render()};
+    $('save').onclick=saveGame;
+    $('new').onclick=()=>{
+      const b=$('new');
+      if(!moves.length||over||b.dataset.arm){moves=[];render();return}
+      b.dataset.arm=1;b.textContent='Opravdu? Klikni znovu';b.classList.add('primary');
+      setTimeout(()=>{if(b.isConnected&&b.dataset.arm){delete b.dataset.arm;b.textContent='Nová hra';b.classList.remove('primary')}},3000);
+    };
+  }else if(mode==='review'){
+    const t=game.moves.length,len=vv?vv.moves.length:t,pos=vv?vn:step;
+    c.innerHTML=`<button data-n="start" ${(vv||step)?'':'disabled'}>⏮</button><button data-n="prev" ${(vv||step)?'':'disabled'}>◀</button><button data-n="next" ${pos<len?'':'disabled'}>▶</button><button data-n="end" ${pos<len?'':'disabled'}>⏭</button><button id="vadd" class="${adding?'primary':''}">${adding?'✔ Hotovo':'➕ Varianta'}</button>${adding&&vv?`<button id="vundo" ${vn===len?'':'disabled'}>↶ Zpět</button>`:''}${vv?'<button id="vdel">🗑 Smazat variantu</button>':''}<button id="back">← Zpět do hry</button><button id="exp">⬇ Export</button>`;
+    c.querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>nav(b.dataset.n));
+    $('vadd').onclick=()=>{adding=!adding;render()};
+    if($('vundo'))$('vundo').onclick=()=>{const k=vv.moves.length-1;vv.moves.pop();if(vv.notes)delete vv.notes[k];if(!vv.moves.length)delVar();else{vn=vv.moves.length;persist();render()}};
+    if($('vdel'))$('vdel').onclick=()=>{
+      const b=$('vdel');
+      if(!b.dataset.arm){b.dataset.arm=1;b.textContent='Opravdu smazat?';b.classList.add('primary');setTimeout(()=>{if(b.isConnected&&b.dataset.arm){delete b.dataset.arm;b.textContent='🗑 Smazat variantu';b.classList.remove('primary')}},3000);return}
+      delVar();
+    };
+    $('back').onclick=()=>{adding=false;vv=null;mode=curTable()?'online':'play';renderAll()};
+    $('exp').onclick=()=>exportGames([game],fname(game));
+    renderAnno();
+  }else onlinePanel(c,a);
+  renderBanner();
+  saveState();
+}
+function renderBanner(){
+  const t=myTable(),b=$('banner');
+  if(t&&mode!=='online'){
+    b.hidden=false;b.innerHTML=`<span>Jsi u stolu ${t.id+1}: ${esc(onStatus(t))}</span><button id="bk" class="primary">Zpět ke stolu</button>`;
+    $('bk').onclick=()=>{mode='online';tab='game';vv=null;adding=false;renderAll()};
+  }else b.hidden=true;
+}
+
+/* ───────── online panel (pravá strana při hře u stolu) ───────── */
+function onlinePanel(c,a){
+  const t=curTable();if(!t){c.innerHTML='';a.innerHTML='';return}
+  const me=seatIdx(t),g=t.game,R=t.rules,isHost=me===t.host,sp=me<0;
+  let b='';
+  const canRev=g&&g.savedId&&games.some(x=>x.id===g.savedId);
+  if(sp)b=`<button id="unwatch">Přestat sledovat</button>`+(t.phase==='over'&&canRev?'<button id="rev">📖 Rozbor</button>':'');
+  else if(t.phase==='waiting')b='<button id="leave">Odejít od stolu</button>';
+  else if(t.phase==='setup')b=(isHost?'<button id="go" class="primary">▶ Začít hru</button>':'')+'<button id="leave">Odejít od stolu</button>';
+  else if(t.phase==='play')b='<button id="resign">🏳 Vzdát se</button>';
+  else if(t.phase==='over')b=(canRev?'<button id="rev" class="primary">📖 Rozbor</button>':'')+`<button id="again">${t.seats.every(Boolean)?'🔁 Hrát znovu':'⏳ Počkat na soupeře'}</button><button id="leave">Odejít</button>`;
+  c.innerHTML=b;
+  const on=(id,f)=>{const e=$(id);if(e)e.onclick=f};
+  on('unwatch',()=>{watching=null;mode='play';tab='tables';renderAll()});
+  on('rev',()=>openGame(g.savedId,true));
+  on('leave',()=>send({t:'leave'}));
+  on('go',()=>send({t:'start'}));
+  on('again',()=>send({t:'again'}));
+  if($('resign'))arm($('resign'),()=>send({t:'resign'}));
+
+  let h='<div class="pls">';
+  [0,1].forEach(i=>{
+    const s=t.seats[i],col=g&&g.colors?(g.colors.X===i?'X':'O'):null;
+    h+=`<div class="pl ${g&&g.actor===i?'act':''}"><span class="ps">${col?`<b style="color:${col==='X'?'#1e5bd8':'#d32f2f'}">${sy(col)}</b>`:'•'}</span><span class="pn">${s?esc(s.name)+(s.me?' (ty)':'')+((t.phase==='waiting'||t.phase==='setup')&&t.host===i?' 👑':'')+(s.disc?' ⚠ odpojen(a)':''):'<i class="muted">volné místo</i>'}</span>${R.time&&g&&g.moves!==undefined&&(t.phase==='play'||t.phase==='over')?`<span class="ck" data-ck="${i}"></span>`:''}</div>`;
+  });
+  h+='</div>';
+  const opts=(arr,val,f)=>arr.map(v=>`<option value="${v}" ${v==val?'selected':''}>${f(v)}</option>`).join('');
+  if(t.phase==='waiting')h+=`<div class="muted">${sp?'Stůl čeká na hráče.':'Jakmile si přisedne soupeř, nastavíš pravidla a spustíš hru.'}</div>`;
+  else if(t.phase==='setup'){
+    if(isHost){
+      h+=`<div class="rf"><label>Čas na hráče<select data-r="time" data-num="1">${opts(TIMES,R.time,v=>v?v+' min':'bez limitu')}</select></label><label>Přírůstek za tah<select data-r="inc" data-num="1" ${R.time?'':'disabled'}>${opts(INCS,R.inc,v=>v?'+'+v+' s':'žádný')}</select></label><label>Zahájení<select data-r="swap">${opts(['none','swap1','swap2'],R.swap,v=>({none:'Bez swapu',swap1:'Swap 1',swap2:'Swap 2'}[v]))}</select></label>${R.swap==='none'?`<label>Tvoje barva<select data-r="color">${opts(['random','host-x','host-o'],R.color,v=>({random:'Náhodně','host-x':'✕ (začíná)','host-o':'○'}[v]))}</select></label>`:''}</div>`;
+      h+=`<div class="muted">${{none:'Hraje se rovnou, ✕ začíná.',swap1:'Ty položíš ✕ ○ ✕, soupeř si vybere stranu.',swap2:'Ty položíš ✕ ○ ✕. Soupeř si vybere stranu, nebo přidá ○ ✕ a stranu pak vybereš ty.'}[R.swap]}</div>`;
+    }else h+=`<div class="muted">Pravidla: ${rulesText(R)}${R.swap==='none'?'':' (hostitel položí ✕ ○ ✕, ty si vybereš stranu)'}</div>`;
+  }else{
+    h+=`<div class="muted">${rulesText(R)}</div>`;
+    if(t.phase==='play'&&g.actor===me){
+      const n=g.moves.length;
+      if(g.stage==='opening')h+=`<div><b>Polož ${sym(n)}</b> <span class="muted">(${n+1}/3)</span></div>`;
+      else if(g.stage==='extra')h+=`<div><b>Polož ${sym(n)}</b> <span class="muted">(${n-2}/2) – pak si soupeř vybere stranu</span></div>`;
+      else h+=`<div><b>Vyber si stranu</b></div><div class="muted">Položeno: ✕ ○ ✕${g.stage==='choice2'?' ○ ✕':''}. Další tah patří ○.</div><div class="bar"><button data-pick="X">Hrát za ✕<small>táhne soupeř</small></button><button data-pick="O">Hrát za ○<small>táhnu já</small></button>${g.stage==='choice'&&R.swap==='swap2'?'<button data-pick="more">Přidat ○ ✕<small>stranu vybere soupeř</small></button>':''}</div>`;
+    }
+  }
+  a.innerHTML=h;
+  a.querySelectorAll('[data-pick]').forEach(x=>x.onclick=()=>send({t:'choose',pick:x.dataset.pick}));
+  a.querySelectorAll('[data-r]').forEach(x=>x.onchange=()=>{
+    const r={};a.querySelectorAll('[data-r]').forEach(s=>r[s.dataset.r]=s.dataset.num?+s.value:s.value);
+    send({t:'rules',rules:r});
+  });
+  tickClocks();
+}
+
+function nav(k){
+  const t=game.moves.length;
+  if(k==='start'){vv=null;step=0}
+  else if(k==='end'){if(vv)vn=vv.moves.length;else step=t}
+  else if(k==='next'){if(vv){if(vn<vv.moves.length)vn++}else if(step<t)step++}
+  else if(k==='prev'){if(vv){if(vn>1)vn--;else{step=vv.at;vv=null}}else if(step>0)step--}
+  render();
+}
+function delVar(){const at=vv.at,v=vv;game.vars=(game.vars||[]).filter(x=>x!==v);vv=null;step=at;persist();render()}
+function renderAnno(){
+  const a=$('anno'),key=vv?vn-1:step-1;
+  const hint=adding?`<div class="muted">✏️ Zadávání varianty: klikej na hrací plán. Tahy se uloží jako varianta ${(vv?vv.at:step)?'po '+(vv?vv.at:step)+'. tahu':'před 1. tahem'} a uvidíš je jen tam.</div>`:'';
+  if(key<0){a.innerHTML=hint+'<div class="muted">Pomocí šipek (nebo kliknutím na tah v seznamu) procházej partii.</div>';return}
+  const notes=vv?(vv.notes=vv.notes||{}):game.notes,gi=vv?vv.at+key:key,m=vv?vv.moves[key]:game.moves[key],nt=notes[key]||{};
+  a.innerHTML=hint+`<div><b>${vv?'<span style="color:#8e5bd6">varianta</span> ':''}${sym(gi)} ${esc(nm(gi,game))} – ${lab(m)}</b></div><div class="badges">${Object.entries(B).map(([k,v])=>`<button data-b="${k}" class="${nt.b===k?'on':''}"><i class="bd" style="background:${v[2]}">${v[0]}</i>${v[1]}</button>`).join('')}</div><textarea id="note" placeholder="Poznámka k tahu…">${(nt.t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')}</textarea>`;
+  a.querySelectorAll('[data-b]').forEach(b=>b.onclick=()=>{
+    const n=notes[key]=notes[key]||{};
+    n.b=n.b===b.dataset.b?undefined:b.dataset.b;
+    cleanup(notes,key);persist();render();
+  });
+  $('note').oninput=e=>{
+    const n=notes[key]=notes[key]||{};n.t=e.target.value;cleanup(notes,key);persist();renderList();
+  };
+}
+function cleanup(o,k){const n=o[k];if(n&&!n.b&&!n.t)delete o[k]}
+
+/* ───────── uložené hry (sdílené na serveru) ───────── */
+const dirty=new Set();let ptm=0;
+function persist(){if(!game)return;dirty.add(game.id);clearTimeout(ptm);ptm=setTimeout(flush,400)}
+function flush(){
+  if(!ws||ws.readyState!==1||!online)return;
+  dirty.forEach(id=>{const g=games.find(x=>x.id===id);if(g)ws.send(JSON.stringify({t:'annot',id,notes:g.notes,vars:g.vars}))});
+  dirty.clear();
+}
+function saveGame(){
+  if(!online){toast('Pro uložení se musíš připojit k serveru.');return}
+  const win=findWin(moves),res=win?(moves.length-1)%2:(moves.length===N*N?'draw':'open');
+  const p1=nm(0),p2=nm(1);
+  const g={id:uid(),name:`${p1} vs ${p2}`,p1,p2,moves:moves.map(m=>({x:m.x,y:m.y})),notes:{},vars:[],res,how:win?'five':undefined,ts:Date.now()};
+  games.unshift(g);send({t:'add',games:[g]});
+  game=g;step=g.moves.length;vv=null;adding=false;mode='review';tab='game';renderAll();
+}
+function openGame(id,atEnd){
+  const x=games.find(q=>q.id===id);if(!x){toast('Hra ještě není načtená, zkus to za chvíli.');return}
+  game=x;step=atEnd?x.moves.length:0;vv=null;adding=false;mode='review';tab='game';renderAll();
+}
+function resText(g){
+  const s=g.res==='draw'?'remíza':g.res==='open'?'nedokončená':'vyhrál '+sym(g.res)+' '+(g.res?g.p2:g.p1);
+  const h={time:' (čas)',resign:' (vzdání)',abandon:' (odpojení)'}[g.how]||'';
+  return s+h;
+}
+const fmtDate=g=>g.ts?new Date(g.ts).toLocaleString('cs-CZ'):(g.date||'');
+const fname=g=>'piskvorky-'+g.name.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w-]+/g,'_').slice(0,40)+'.json';
+function exportGames(list,fn){
+  const data=JSON.stringify({app:'piskvorky',v:1,games:list},null,1);
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'application/json'}));a.download=fn;
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+function cleanMoves(a,seen){
+  if(!Array.isArray(a))return null;
+  const out=[];
+  for(const m of a){
+    if(!m||!Number.isInteger(m.x)||!Number.isInteger(m.y)||m.x<0||m.y<0||m.x>=N||m.y>=N||seen.has(m.x+','+m.y))return null;
+    seen.add(m.x+','+m.y);out.push({x:m.x,y:m.y});
+  }
+  return out;
+}
+function cleanNotes(o,len){
+  const notes={};
+  if(o&&typeof o==='object')for(const k in o){
+    const i=+k,v=o[k];
+    if(!Number.isInteger(i)||i<0||i>=len||!v)continue;
+    const r={};
+    if(typeof v.b==='string'&&Object.prototype.hasOwnProperty.call(B,v.b))r.b=v.b;
+    if(typeof v.t==='string'&&v.t)r.t=v.t.slice(0,2000);
+    if(r.b||r.t)notes[i]=r;
+  }
+  return notes;
+}
+function importText(t){
+  if(!online)return -2;
+  let d;try{d=JSON.parse(t)}catch(e){return -1}
+  const arr=d&&Array.isArray(d.games)?d.games:(d&&Array.isArray(d.moves)?[d]:null);
+  if(!arr)return -1;
+  const out=[];
+  for(const g of arr){
+    if(!g)continue;
+    const ms=cleanMoves(g.moves,new Set());
+    if(!ms||!ms.length)continue;
+    const vars=[];
+    if(Array.isArray(g.vars))for(const v of g.vars){
+      if(!v||!Number.isInteger(v.at)||v.at<0||v.at>ms.length)continue;
+      const seen=new Set(ms.slice(0,v.at).map(m=>m.x+','+m.y)),vm=cleanMoves(v.moves,seen);
+      if(vm&&vm.length)vars.push({id:Date.now()*100+(vc++%100),at:v.at,moves:vm,notes:cleanNotes(v.notes,vm.length)});
+    }
+    const p1=String(g.p1||'Hráč 1').slice(0,20),p2=String(g.p2||'Hráč 2').slice(0,20);
+    const win=findWin(ms),auto=win?(ms.length-1)%2:(ms.length===N*N?'draw':'open');
+    const how=['five','time','resign','abandon'].includes(g.how)?g.how:undefined;
+    const res=win?auto:((how==='time'||how==='resign'||how==='abandon')&&(g.res===0||g.res===1)?g.res:auto);
+    out.push({id:uid(),name:p1+' vs '+p2,p1,p2,moves:ms,notes:cleanNotes(g.notes,ms.length),vars,res,how,
+      ts:Number.isFinite(g.ts)?g.ts:(Number.isFinite(g.id)?g.id:Date.now()+out.length),date:typeof g.date==='string'?g.date.slice(0,40):undefined});
+  }
+  out.forEach(g=>games.unshift(g));
+  for(let i=0;i<out.length;i+=40)send({t:'add',games:out.slice(i,i+40)});
+  return out.length;
+}
+function done(n){
+  updTabs();
+  $('box').innerHTML=`<div class="muted" style="margin-bottom:8px">${n>0?'Importováno her: '+n+'.':n===-2?'Nejsi připojen k serveru.':'Import se nepodařil – nejde o platný export piškvorek.'}</div>`;
+}
+function showBox(){
+  const b=$('box');
+  b.innerHTML='<div class="muted" style="margin-bottom:6px">Vlož obsah exportovaného souboru:</div><textarea id="bx"></textarea><button id="bxGo" class="primary" style="margin:6px 0">Importovat</button>';
+  $('bxGo').onclick=()=>done(importText($('bx').value));
+}
+function renderSaved(){
+  const p=$('pSaved');
+  const list=games.slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
+  const tb=`<div class="bar" style="margin-bottom:8px"><button id="impF">⬆ Import souboru</button><button id="impT">Vložit text</button><button id="expAll" ${games.length?'':'disabled'}>⬇ Export všech</button></div><input type="file" id="impI" accept=".json,application/json,text/plain" hidden><div id="box"></div>`;
+  const body=list.length?list.map(g=>`<div class="game"><div class="info"><b>${esc(g.name)}</b><span class="muted">${esc(fmtDate(g))} · ${g.moves.length} tahů · ${esc(resText(g))}${g.rules?' · '+esc(rulesText(g.rules)):''}</span></div><button data-o="${g.id}">Otevřít</button><button data-x="${g.id}" title="Exportovat">⬇</button><button data-d="${g.id}" title="Smazat">🗑</button></div>`).join(''):`<div class="empt">${online?'Zatím žádné uložené hry.':'Připojování k serveru…'}</div>`;
+  p.innerHTML=tb+body;
+  $('impF').onclick=()=>$('impI').click();
+  $('impI').onchange=async e=>{const f=e.target.files[0];if(!f)return;let t='';try{t=await f.text()}catch(x){}done(importText(t))};
+  $('impT').onclick=()=>showBox();
+  $('expAll').onclick=()=>exportGames(games,'piskvorky-vse.json');
+  p.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>{const g=games.find(g=>g.id===b.dataset.x);if(g)exportGames([g],fname(g))});
+  p.querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>openGame(b.dataset.o,false));
+  p.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{
+    if(!b.dataset.arm){b.dataset.arm=1;b.textContent='Smazat?';setTimeout(()=>{if(b.isConnected){delete b.dataset.arm;b.textContent='🗑'}},3000);return}
+    const id=b.dataset.d;
+    if(!send({t:'del',id}))return;
+    games=games.filter(g=>g.id!==id);dirty.delete(id);
+    if(mode==='review'&&game&&game.id===id){game=null;vv=null;mode=curTable()?'online':'play'}
+    renderAll();
+  });
+}
+
+/* ───────── stoly ───────── */
+const getName=()=>$('myName').value.trim()||('Hráč '+CID.slice(0,3));
+function renderTables(){
+  $('conn').textContent=online?'● Připojeno k serveru':'○ Připojování k serveru…';
+  const mine=myTable();
+  $('tlist').innerHTML=tables.length?tables.map(t=>{
+    const stT={empty:'volný stůl',waiting:'čeká na soupeře',setup:'nastavují pravidla',play:`hraje se · ${t.game?t.game.moves.length:0} tahů`,over:'dohráno'}[t.phase];
+    const seat=i=>{
+      const s=t.seats[i];
+      if(s)return `<div class="seat taken ${s.me?'me':''}"><span>${esc(s.name)}</span>${s.me?'<small>ty</small>':''}${s.disc?'<small>⚠ odpojen(a)</small>':''}</div>`;
+      return `<button class="seat free" data-sit="${t.id}:${i}" ${mine?'disabled':''}>Sednout si</button>`;
+    };
+    const act=mine&&mine.id===t.id?`<button data-show="1" class="primary">Zobrazit stůl</button>`:(!mine&&(t.phase==='play'||t.phase==='over')?`<button data-watch="${t.id}">👁 Sledovat</button>`:'');
+    return `<div class="tbl"><div class="th"><span>Stůl ${t.id+1}</span></div><div class="tseats">${seat(0)}<div class="felt">${stT}</div>${seat(1)}</div>${t.phase==='play'||t.phase==='over'?`<div class="muted">${rulesText(t.rules)}</div>`:''}${act}</div>`;
+  }).join(''):'<div class="empt">Načítání stolů…</div>';
+  const p=$('tlist');
+  p.querySelectorAll('[data-sit]').forEach(b=>b.onclick=()=>{const [ti,si]=b.dataset.sit.split(':').map(Number);send({t:'sit',table:ti,seat:si,name:getName()})});
+  p.querySelectorAll('[data-watch]').forEach(b=>b.onclick=()=>{watching=+b.dataset.watch;mode='online';tab='game';renderAll()});
+  p.querySelectorAll('[data-show]').forEach(b=>b.onclick=()=>{mode='online';tab='game';vv=null;adding=false;renderAll()});
+}
+function updTabs(){
+  [['tables','tTables'],['game','tGame'],['saved','tSaved']].forEach(([k,id])=>$(id).classList.toggle('on',tab===k));
+  $('tSaved').textContent=`Uložené (${games.length})`;
+  $('pTables').hidden=tab!=='tables';$('pGame').hidden=tab!=='game';$('pSaved').hidden=tab!=='saved';
+  if(tab==='saved')renderSaved();
+  if(tab==='tables')renderTables();
+  saveState();
+}
+const renderAll=()=>{updTabs();render()};
+$('tTables').onclick=()=>{tab='tables';updTabs()};
+$('tGame').onclick=()=>{tab='game';updTabs()};
+$('tSaved').onclick=()=>{tab='saved';updTabs()};
+$('goLocal').onclick=()=>{
+  if(myTable()){toast('Nejdřív odejdi od stolu.');return}
+  watching=null;if(mode!=='play')mode='play';vv=null;adding=false;tab='game';renderAll();
+};
+$('myName').value=lsGet('piskvorky:name')||'';
+$('myName').placeholder='Tvoje jméno (např. Hráč '+CID.slice(0,3)+')';
+$('myName').oninput=e=>lsSet('piskvorky:name',e.target.value);
+
+$('list').onclick=e=>{
+  if(mode!=='review')return;
+  const v=e.target.closest('[data-v]');
+  if(v){vv=(game.vars||[]).find(x=>x.id==v.dataset.v)||null;vn=+v.dataset.j;render();return}
+  const m=e.target.closest('[data-i]');
+  if(m){vv=null;step=+m.dataset.i+1;render()}
+};
+function pt(e){const r=$('board').getBoundingClientRect(),k=S/r.width;return [Math.floor(((e.clientX-r.left)*k-M)/C),Math.floor(((e.clientY-r.top)*k-M)/C)]}
+function addVarMove(e){
+  const ms=line();
+  if(findWin(ms)||ms.length===N*N)return;
+  const [x,y]=pt(e);
+  if(x<0||y<0||x>=N||y>=N||ms.some(m=>m.x===x&&m.y===y))return;
+  const mk=(at,mvs,nts)=>({id:Date.now()*100+(vc++%100),at,moves:mvs,notes:nts});
+  const vars=game.vars=game.vars||[];
+  if(!vv){vv=mk(step,[{x,y}],{});vars.push(vv);vn=1}
+  else if(vn===vv.moves.length){vv.moves.push({x,y});vn++}
+  else{
+    const nts={};for(let j=0;j<vn;j++)if(vv.notes&&vv.notes[j])nts[j]=Object.assign({},vv.notes[j]);
+    vv=mk(vv.at,vv.moves.slice(0,vn).concat([{x,y}]),nts);vars.push(vv);vn=vv.moves.length;
+  }
+  persist();render();
+}
+$('board').onclick=e=>{
+  if(mode==='review'){if(adding)addVarMove(e);return}
+  if(mode==='online'){
+    const t=curTable(),me=t?seatIdx(t):-1;
+    if(!t||me<0||t.phase!=='play'||!['opening','extra','play'].includes(t.game.stage)||t.game.actor!==me)return;
+    const [x,y]=pt(e);
+    if(x<0||y<0||x>=N||y>=N||t.game.moves.some(m=>m.x===x&&m.y===y))return;
+    send({t:'move',x,y});return;
+  }
+  if(mode!=='play')return;
+  if(findWin(moves)||moves.length===N*N)return;
+  const [x,y]=pt(e);
+  if(x<0||y<0||x>=N||y>=N||moves.some(m=>m.x===x&&m.y===y))return;
+  moves.push({x,y});render();
+};
+document.addEventListener('keydown',e=>{
+  if(mode!=='review'||tab!=='game'||/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))return;
+  const k={ArrowRight:'next',ArrowLeft:'prev',Home:'start',End:'end'}[e.key];
+  if(k){e.preventDefault();nav(k)}
+  else if(e.key==='ArrowDown'&&!vv){const f=(game.vars||[]).find(v=>v.at===step);if(f){e.preventDefault();vv=f;vn=1;render()}}
+  else if(e.key==='ArrowUp'&&vv){e.preventDefault();step=vv.at;vv=null;render()}
+});
+['n1','n2'].forEach((id,k)=>$(id).oninput=()=>{if(mode==='play'){pn[k]=$(id).value;render()}});
+
+/* obnovení rozpracovaného stavu po načtení stránky */
+try{
+  const st=JSON.parse(lsGet(SK)||'null');
+  if(st&&typeof st==='object'){
+    const ms=cleanMoves(st.moves,new Set());if(ms)moves=ms;
+    if(Array.isArray(st.pn))pn=[String(st.pn[0]||'').slice(0,20),String(st.pn[1]||'').slice(0,20)];
+    if(['tables','game','saved'].includes(st.tab))tab=st.tab;
+    if(st.mode==='review')pending=st;
+  }
+}catch(e){}
+function restore(){
+  if(!pending)return;const st=pending;pending=null;
+  const g=games.find(x=>x.id===st.gid);
+  if(!g)return;
+  game=g;mode='review';
+  const v=st.vid?(g.vars||[]).find(x=>x.id===st.vid):null;
+  if(v){vv=v;vn=Math.min(Math.max(1,+st.vn||1),v.moves.length)}
+  else step=Math.min(Math.max(0,+st.step||0),g.moves.length);
+}
+renderAll();
+connect();
+</script>
+</body>
+</html>
